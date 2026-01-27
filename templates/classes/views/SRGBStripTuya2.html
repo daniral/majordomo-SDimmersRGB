@@ -1,0 +1,335 @@
+<script type="text/javascript">
+	
+/**
+ * ==========================================================
+ * RGB Strip Tuya Widget для MajorDoMo
+ * ==========================================================
+ *
+ * Описание:
+ * Этот файл реализует виджет управления лампой с цветным светом и белым светом,
+ * яркостью и сценами. Использует глобальный объект `window.rgbStripTuya`
+ * для хранения состояния лампы.
+ *
+ * Плейсхолдеры, заменяемые сервером:
+ * %.object_id%           - уникальный ID лампы
+ * %.object_title%        - название объекта в MajorDoMo
+ * %.color%               - HEX цвет лампы
+ * %.level%               - яркость лампы (0-100)
+ * %.loadType%            - тип загрузки виджета
+ * %.status%              - статус лампы (on/off)
+ * %.icon%                - иконка устройства
+ * %.object_description%  - описание устройства
+ *
+ * ==========================================================
+ * Глобальный объект lamp:
+ * window.rgbStripTuya[object_id] = {
+ *   currentColor: string,          // текущий цвет (#HEX)
+ *   level: number,                 // яркость лампы (0-100)
+ *   sceneWork: string|null,        // активная рабочая сцена
+ *   scenes: string[],              // список доступных сцен
+ *   currentSceneName: string|null, // текущая сцена
+ *   dragging: boolean,             // флаг перетаскивания ползунка
+ *   levelTimeout: number|null      // таймер debounce изменения яркости
+ * }
+ *
+ * ==========================================================
+ * Функции:
+ *
+ * initLamp(objectId, color, level)
+ *   - Создает объект лампы или возвращает существующий.
+ *   - Инициализирует все свойства: currentColor, level, sceneWork, scenes, currentSceneName, dragging, levelTimeout.
+ *   - @param {string} objectId - ID лампы
+ *   - @param {string} color - начальный HEX цвет
+ *   - @param {number} level - начальная яркость (0-100)
+ *   - @returns {Object} объект лампы
+ *
+ * sendNewColor(objectId, val)
+ *   - Обновляет цвет лампы и фон ползунка яркости.
+ *   - @param {string} objectId - ID лампы
+ *   - @param {string} val - новый цвет (#HEX)
+ *
+ * previewLevel(objectId, val)
+ *   - Предварительный просмотр изменения яркости.
+ *   - Устанавливает dragging = true, обновляет текст и фон ползунка.
+ *   - @param {string} objectId - ID лампы
+ *   - @param {number|string} val - яркость (0-100)
+ *
+ * sendNewLevel(objectId)
+ *   - Отправка нового значения яркости на сервер с debounce 500ms.
+ *   - Сбрасывает dragging и очищает предыдущий таймер.
+ *   - @param {string} objectId - ID лампы
+ *
+ * updateSliderFill(selector, value, color)
+ *   - Обновляет фон слайдера input[type=range] в зависимости от значения.
+ *   - @param {string} selector - CSS-селектор ползунка
+ *   - @param {number} value - текущее значение (0-100)
+ *   - @param {string} color - цвет до текущего значения (#HEX)
+ *
+ * populateSceneSelect(objectId)
+ *   - Заполняет select доступными сценами.
+ *   - Если текущая сцена "unknown" — добавляет опцию "Неизвестная сцена".
+ *   - Подсвечивает активную сцену.
+ *   - @param {string} objectId - ID лампы
+ *
+ * sendScene(objectId, sceneName)
+ *   - Отправляет выбранную сцену на сервер и обновляет текущую сцену.
+ *   - @param {string} objectId - ID лампы
+ *   - @param {string|null} sceneName - название сцены или null
+ *
+ * initOnReady(objectId)
+ *   - Инициализация при загрузке страницы.
+ *   - Устанавливает фон ползунка текущим цветом и заполняет select сцен.
+ *   - @param {string} objectId - ID лампы
+ *
+ * HTML элементы:
+ *   - #rgbStripTuya%.object_id%_leveltxt      - текст яркости лампы
+ *   - #rgbStripTuya%.object_id%_level        - слайдер яркости
+ *   - #sceneSelect%.object_id%               - select для сцен
+ *
+ */
+
+    // создаём объект для текущей лампы, если его нет
+    if (typeof window.rgbStripTuya === 'undefined') window.rgbStripTuya = {};
+    if (typeof window.rgbStripTuya%.object_id% === 'undefined') {
+        window.rgbStripTuya%.object_id% = {
+			currentColor: '%.color%',
+            level: %.level% || 50,
+            sceneWork: null,
+            scenes: [],
+            currentSceneName: null,
+            dragging: false,
+            // таймеры debounce
+            levelTimeout: null
+        };
+    }
+
+    // --- Цветной свет ---
+    function sendNewColor%.object_id%(val) {
+		let lamp = window.rgbStripTuya%.object_id%;
+		lamp.currentColor = val;  
+    //callMethod('%.object_title%.setColor', 'value=' + encodeURIComponent(val));
+    setGlobal('%.object_title%.color', val);
+		// обновляем цвет фона у слайдера ЯРКОСТИ ЦВЕТА
+		updateSliderFill('#rgbStripTuya%.object_id%_level', lamp.level, val);
+    }
+
+// --- Яркость ---
+    function previewLevel%.object_id%(val) {
+        val = parseInt(val);
+        let lamp = window.rgbStripTuya%.object_id%;
+        lamp.dragging = true;
+        lamp.level = val;
+        $('#rgbStripTuya%.object_id%_leveltxt').text("Яркость: " + val + "%");
+        updateSliderFill('#rgbStripTuya%.object_id%_level', val, lamp.currentColor);
+    }
+
+    function sendNewLevel%.object_id%() {
+        let lamp = window.rgbStripTuya%.object_id%;
+        lamp.dragging = false;
+        clearTimeout(lamp.levelTimeout);
+        lamp.levelTimeout = setTimeout(() => {
+        //callMethod('%.object_title%.setLevel', 'value=' + lamp.level);
+        setGlobal('%.object_title%.level', lamp.level);
+        }, 500);
+    }
+
+    // --- Сцены ---
+    function populateSceneSelect%.object_id%() {
+        const select = document.getElementById('sceneSelect%.object_id%');
+        if (!select) return;
+        const lamp = window.rgbStripTuya%.object_id%;
+        let sceneStr = getGlobal('%.object_title%.scenesList');
+        let currentSceneName = getGlobal('%.object_title%.sceneName') || 'none';
+        lamp.currentSceneName = currentSceneName;
+        lamp.scenes = [];
+        if (sceneStr && typeof sceneStr === 'string') {
+            sceneStr.split(',').forEach(item => {
+                const name = item.split('=')[0].trim();
+                if (name) lamp.scenes.push(name);
+            });
+        }
+        select.innerHTML = '';
+        if (lamp.scenes.length === 0) {
+            const opt = document.createElement('option');
+            opt.disabled = true;
+            opt.selected = true;
+            opt.textContent = 'Сцен нет';
+            select.appendChild(opt);
+            return;
+        }
+        // Если текущая сцена неизвестна
+        if (currentSceneName === 'unknown') {
+            const unknownOpt = document.createElement('option');
+            unknownOpt.value = 'unknown';
+            unknownOpt.textContent = 'Неизвестная сцена';
+            unknownOpt.selected = true;
+            select.appendChild(unknownOpt);
+        }
+        // Добавляем все сцены и подсветку активной
+        lamp.scenes.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            if (name === currentSceneName) {
+                opt.selected = true;
+                opt.style.background = '#4CAF50';
+                opt.style.color = 'white';
+            }
+            select.appendChild(opt);
+        });
+    }
+    function sendScene%.object_id%(sceneName) {
+        const lamp = window.rgbStripTuya%.object_id%;
+        if (!sceneName) {
+            setGlobal('%.object_title%.sceneName', 'none');
+            lamp.currentSceneName = null;
+            populateSceneSelect%.object_id%();
+            return;
+        }
+
+        sceneName = sceneName.trim();
+        lamp.currentSceneName = sceneName;
+        setGlobal('%.object_title%.sceneName', sceneName);
+        populateSceneSelect%.object_id%();
+    }
+
+    // --- Обновление фона ползунка ---
+    function updateSliderFill(selector, value, color) {
+        const slider = document.querySelector(selector);
+        if (!slider) return;
+        slider.style.background = `linear-gradient(90deg, ${color} ${value}%, #ddd ${value}%)`;
+    }
+
+    $(document).ready(function() {
+        updateSliderFill('#rgbStripTuya%.object_id%_level', %.level%, '%.color%');
+        populateSceneSelect%.object_id%();
+    });
+</script>
+
+<style>
+/* Стили для карточки */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  margin: 20px 0 20px 50px;
+  max-width: 320px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Стили для яркости и цвета */
+.device-details p {
+  margin: 8px 0 4px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Цвет */
+input[type=color] {
+  width: 100%;
+}
+
+/* Слайдеры */
+
+input[type=range] {
+  width: 100%;
+  height: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  outline: none;
+  background: linear-gradient(90deg, #ddd 0%, #ddd 0%);
+  transition: background 0.2s ease;
+  -webkit-appearance: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid currentColor;
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+#rgbStripTuya%.object_id%_level {
+  color: %.color%;
+}
+
+/* --- Стили кастомного селекта --- */
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  margin-top: 5px;
+}
+
+.select-wrapper select {
+  width: 100%;
+  padding: 6px 16px; 
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background-color: #f4f4f4;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.select-wrapper select:focus {
+  border-color: #4CAF50;
+  background-color: #fff;
+  outline: none;
+}
+
+
+/* Опционально: плавное изменение фона при наведении */
+.select-wrapper select:hover {
+  background-color: #eaeaea;
+}
+</style>
+	
+<div class="device-widget controller loadtype_%.loadType%">
+ <div onClick='$("#icon%.object_id%_light").addClass("pressed");setTimeout("$(\"#icon%.object_id%_light\").removeClass(\"pressed\");",300);callMethod("%.object_title%.switch");'>
+  <div class="device-icon %.status|"off;on"%" id="icon%.object_id%_light" style='%.icon|"background-image:url(%.icon%)"%'></div>
+  <div class="device-header">%.object_description%</div>
+ </div>
+</div>
+
+<div class="card">
+  <div class="device-details">
+	<h5>🎨 Цветной свет</h5>
+	<input type="color"  
+		   value="%.color%" 
+		   onchange="sendNewColor%.object_id%(this.value);">
+    <p id="rgbStripTuya%.object_id%_leveltxt">Яркость: %.level%%</p>
+    <input id="rgbStripTuya%.object_id%_level" 
+           type="range" min="1" max="100" step="1"
+           value="%.level%" 
+           oninput="previewLevel%.object_id%(this.value)"
+           onmouseup="sendNewLevel%.object_id%()"
+           ontouchend="sendNewLevel%.object_id%()"> 
+  </div>	   
+  <div class="select-wrapper">
+	<h5>🎭 Сцены</h5>
+	<select id="sceneSelect%.object_id%" onchange="sendScene%.object_id%(this.value)">
+		<!-- Опции будут сгенерированы динамически -->
+	</select>
+  </div>
+  
+</div>
+
+<script>
+	// Инициализация фона ползунка и сцен при загрузке
+	updateSliderFill('#rgbStripTuya%.object_id%_level', %.level%, '%.color%');
+	populateSceneSelect%.object_id%();
+</script>

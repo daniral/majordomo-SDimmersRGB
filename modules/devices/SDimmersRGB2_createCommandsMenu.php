@@ -76,15 +76,17 @@ $menuItems = [
         ]],
 
         // Цвет
-        ['Цвет', $objectName, '', '', '', '', '', '', '', '', '', 10, [
-            ['День', $objectName, '', '', '', '', '', '', '', '', '', 20, [
-                ['Цвет', $objectName, 'dayColor', 'color', '', '', '', '', '', '', '', 60],
-                ['Яркость', $objectName, 'dayLevel', 'sliderbox', '', 1, 100, 1, '', '', '', 50],
+        ['Яркость/Цвет', $objectName, '', '', '', '', '', '', '', '', '', 10, [
+            ['Яркость', '', '', '', '', '', '', '', '', '', '', 20, [
+                ['Днем', $objectName, 'dayLevel', 'sliderbox', '', 1, 100, 1, '', '', '', 40],
+                ['Ночью', $objectName, 'nightLevel', 'sliderbox', '', 1, 100, 1, '', '', '', 30],
+                ['Максимальная', $objectName, 'levelMax', 'sliderbox', '', 1, 1500, 1, '', '', '', 20],
+                ['Минимальная', $objectName, 'levelMin', 'sliderbox', '', 1, 1500, 1, '', '', '', 10],
             ]],
-            ['Ночь', $objectName, '', '', '', '', '', '', '', '', '', 10, [
-                ['Цвет', $objectName, 'nightColor', 'color', '', '', '', '', '', '', '', 60],
-                ['Яркость', $objectName, 'nightLevel', 'sliderbox', '', 1, 100, 1, '', '', '', 50],
-        ]],
+            ['Цвет', $objectName, '', '', '', '', '', '', '', '', '', 10, [
+                ['Днем', $objectName, 'dayColor', 'sliderbox', '', 0, 100, 1, '', '', '', 20],
+                ['Ночью', $objectName, 'nightColor', 'sliderbox', '', 0, 100, 1, '', '', '', 10],
+            ]],
         ]],
     ],'SDimmersRGB2.png']
 ];

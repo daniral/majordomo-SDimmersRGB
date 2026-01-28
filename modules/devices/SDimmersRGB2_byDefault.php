@@ -51,7 +51,8 @@
 
 
 $defaults = [
-    'color' => '#ffffff', 'level' => '100',
+    'color' => '#ffffff', 
+    'level' => '100',
 
     'dayColor' => '#FFFFFF',
     'dayLevel' => '100', 

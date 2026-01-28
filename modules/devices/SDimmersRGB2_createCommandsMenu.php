@@ -44,9 +44,9 @@ $deleteMenu = $params['value'] ?? null;
 $menuItems = [
     // Главное меню
     [$objectName, $objectName, '', '', '', '', '', '', '', '', '', 10, [
-        ['Вкл/Выкл', $objectName, 'status', 'switch', '', '', '', '', '', "if (\$new_value) {callMethod('{$objectName}.turnOn');}else{callMethod('{$objectName}.turnOff');}", '', 120],
-        ['Цвет', $objectName, 'color', 'color', '', '', '', '', '', '', '', 110],
-        ['Яркость', $objectName, 'level', 'sliderbox', '', 1, 100, 1, '', '', '', 100],
+        ['Вкл/Выкл', $objectName, 'status', 'switch', '', '', '', '', '', "if (\$new_value) {callMethod('{$objectName}.turnOn');}else{callMethod('{$objectName}.turnOff');}", '', 80],
+        ['Цвет', $objectName, 'color', 'color', '', '', '', '', '', '', '', 70],
+        ['Яркость', $objectName, 'level', 'sliderbox', '', 1, 100, 1, '', '', '', 60],
 
         // Автовключение
         ['Автовключение', $objectName, '', '', '', '', '', '', '', '', '', 50, [

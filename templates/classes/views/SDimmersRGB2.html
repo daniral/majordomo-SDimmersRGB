@@ -6,8 +6,8 @@
  * ==========================================================
  *
  * Описание:
- * Этот файл реализует виджет управления лампой с цветным светом и белым светом,
- * яркостью и сценами. Использует глобальный объект `window.dimmersRGB`
+ * Этот файл реализует виджет управления лампой с цветом и яркостью.
+ * Использует глобальный объект `window.dimmersRGB`
  * для хранения состояния лампы.
  *
  * Плейсхолдеры, заменяемые сервером:
@@ -34,7 +34,7 @@
  *
  * initLamp(objectId, color, level)
  *   - Создает объект лампы или возвращает существующий.
- *   - Инициализирует все свойства: currentColor, level, sceneWork, scenes, currentSceneName, dragging, levelTimeout.
+ *   - Инициализирует все свойства: currentColor, level, dragging, levelTimeout.
  *   - @param {string} objectId - ID лампы
  *   - @param {string} color - начальный HEX цвет
  *   - @param {number} level - начальная яркость (0-100)
@@ -61,11 +61,6 @@
  *   - @param {string} selector - CSS-селектор ползунка
  *   - @param {number} value - текущее значение (0-100)
  *   - @param {string} color - цвет до текущего значения (#HEX)
- *
- * initOnReady(objectId)
- *   - Инициализация при загрузке страницы.
- *   - Устанавливает фон ползунка текущим цветом и заполняет select сцен.
- *   - @param {string} objectId - ID лампы
  *
  * HTML элементы:
  *   - #dimmersRGB%.object_id%_leveltxt      - текст яркости лампы

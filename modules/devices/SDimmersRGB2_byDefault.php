@@ -8,7 +8,9 @@
  * --- Основные параметры ---
  * @property string  $color            Цвет лампы в формате HEX (например "#ffff00")
  * @property string  $level            Яркость (1–100)
-  *
+ * @property int     $levelMin         Минимальная рабочая яркость
+ * @property int     $levelMax         Максимальная рабочая яркость
+ *
  * --- Дневной режим ---
  * @property string  $dayLevel         Яркость днём (1–100)
  * @property string  $dayColor         Цвет днём (HEX)

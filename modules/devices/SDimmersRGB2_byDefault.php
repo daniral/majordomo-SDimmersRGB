@@ -53,6 +53,9 @@
 $defaults = [
     'color' => '#ffffff', 
     'level' => '100',
+    
+    'levelMin' => '1',
+    'levelMax' => '100',
 
     'dayColor' => '#FFFFFF',
     'dayLevel' => '100', 

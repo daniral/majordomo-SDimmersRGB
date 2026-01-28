@@ -65,7 +65,7 @@ $value = ($property === 'colorWork')
 // Защита от рекурсий и невалидных данных
 if ($source === 'propertysUpdated' || is_null($value)) return;
 
-$this->setProperty('flag', 1);
+//$this->setProperty('flag', 1);
 
 // --- БЛОК ЦВЕТА (Конвертация XY в чистый HEX) ---
 if ($property === 'colorWork') {
@@ -104,8 +104,8 @@ if ($property === 'colorWork') {
     $hex = sprintf("#%02x%02x%02x", $rgb[0], $rgb[1], $rgb[2]);
     
     // Записываем цвет (чистый оттенок без учета яркости лампы)
-    $this->setProperty('color', $hex);
-    $this->setProperty('colorSaved', $hex);
+    $this->setProperty('color', $hex, 'worksUpdated');
+    //$this->setProperty('colorSaved', $hex);
     return;
 }
 
@@ -123,8 +123,8 @@ if ($property === 'levelWork') {
     $level = (int)round(max(1, min(100, $level)));
     
     // Обновляем текущее состояние и сохраняем его в память
-    $this->setProperty('level', $level);
-    $this->setProperty('levelSaved', $level);
+    $this->setProperty('level', $level, 'worksUpdated');
+    //$this->setProperty('levelSaved', $level);
     
     return;
 }

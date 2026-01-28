@@ -103,15 +103,15 @@ if ($property === 'color' || $property === 'level') {
     if ($value != $this->getProperty($property)) {
         $this->setProperty($property, $value, 'worksUpdated');
     }
-
+	$workValue = $value;
     if ($property === 'level') {
         // 1. Считываем границы устройства
         $levelMin = $this->getProperty('levelMin') ?? 1;
         $levelMax = $this->getProperty('levelMax') ?? 254;
 
         // 2. Пересчитываем 1-100% в рабочий диапазон лампы (например, 1-254)
-        $workValue = (int)round($minLevel + ($maxLevel - $minLevel) * $value / 100);
-        $workValue = max($minLevel, min($maxLevel, $workValue));
+        $workValue = (int)round($levelMin + ($levelMax - $levelMin) * $value / 100);
+        $workValue = max($levelMin, min($levelMax, $workValue));
     } 
     
     if ($property === 'color') {

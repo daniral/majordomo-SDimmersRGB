@@ -120,6 +120,7 @@
         const slider = document.querySelector(selector);
         if (!slider) return;
         slider.style.background = `linear-gradient(90deg, ${color} ${value}%, #ddd ${value}%)`;
+        slider.style.color = color;
     }
 
     $(document).ready(function() {

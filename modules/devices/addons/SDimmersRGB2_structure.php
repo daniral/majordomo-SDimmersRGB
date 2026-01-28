@@ -1,10 +1,10 @@
 <?php
 /**
- * Class SRGBStripTuya2
+ * Class SDimmersRGB2
  *
- * Класс устройства RGB-ленты Tuya для MajorDoMo.
+ * Класс устройств RGB для MajorDoMo.
  * Наследуется от SControllers. Описывает свойства яркости, цвета,
- * рабочих параметров и сцен, а также методы управления устройством.
+ * рабочих параметров, а также методы управления устройством.
  *
  * ===========================================================
  * PROPERTIES:
@@ -13,26 +13,13 @@
  * @property string $color           Текущий цвет ленты (HEX 6 символов). 
  *                                   Формат: #RRGGBB или RRGGBB. DataKey. OnChange: propertysUpdated.
  *
- * @property string $colorWork       Рабочий цвет в формате HSV (12 HEX символов).
- *                                   Пример: "003c03e801f4". OnChange: worksUpdated.
+ * @property string $colorWork       Рабочий цвет в формате {"hex":"#' . $color . '"}.
  *
- * @property string $colorSaved      Последний установленный цвет (HEX).
+ * @property string $colorSaved      Последний установленный цвет (HEX 6 символов).
  *
  * @property int    $level           Текущая яркость (1–100). 
  *                                   DataKey. OnChange: propertysUpdated.
- *
- * @property string $work_mode       Режим работы устройства. Возможные значения:
- *                                   "color" — управление цветом,
- *                                   "scene" — использование сцены.
- *
- * @property string $sceneWork       Текущая рабочая сцена. OnChange: worksUpdated.
- *
- * @property string $scenesList      Список доступных сцен в формате: "имя=значение,имя=значение,...".
- *
- * @property string $sceneName       Название текущей сцены. DataKey. OnChange: propertysUpdated.
- *
- * @property string $sceneNameSaved  Последнее активное название сцены.
- *
+ * 
  * ===========================================================
  * METHODS:
  * ===========================================================
@@ -68,42 +55,33 @@
  *      Вызывается при изменении рабочих параметров (colorWork / sceneWork).
  */
 
-if (SETTINGS_SITE_LANGUAGE && file_exists(ROOT . 'languages/SRGBStripTuya2_' . SETTINGS_SITE_LANGUAGE . '.php')) {
-	include_once(ROOT . 'languages/SRGBStripTuya2_' . SETTINGS_SITE_LANGUAGE . '.php');
+if (SETTINGS_SITE_LANGUAGE && file_exists(ROOT . 'languages/SDimmersRGB2_' . SETTINGS_SITE_LANGUAGE . '.php')) {
+	include_once(ROOT . 'languages/SDimmersRGB2_' . SETTINGS_SITE_LANGUAGE . '.php');
 } else {
-	include_once(ROOT . 'languages/SRGBStripTuya2_default.php'); //
+	include_once(ROOT . 'languages/SDimmersRGB2_default.php'); //
 }
 
-$this->device_types['RGBStripTuya2'] = array(
-	'TITLE' => 'Освещение(Tuya ZigBee LED strip) - 2',
+$this->device_types['dimmerRGB2'] = array(
+	'TITLE' => 'Освещение(Dimmer RGB) - 2',
 	'PARENT_CLASS' => 'SControllers',
-	'CLASS' => 'SRGBStripTuya2',
-	'DESCRIPTION'=>'Tuya ZigBee LED strip - 2',
+	'CLASS' => 'SDimmersRGB2',
+	'DESCRIPTION'=>'Dimmer RGB - 2',
 	'PROPERTIES' => array(
 		'color' => array('DESCRIPTION' => 'Цвет (RGB).', 'ONCHANGE' => 'propertysUpdated', 'DATA_KEY' => 1),
-		'colorWork' => array('DESCRIPTION' => 'Рабочий цвет (HSV).', 'ONCHANGE' => 'worksUpdated'),
+		'colorWork' => array('DESCRIPTION' => 'Рабочий цвет.', 'ONCHANGE' => 'worksUpdated'),
 		'colorSaved' => array('DESCRIPTION' => 'Последний цвет.'),
 
 		'level' => array('DESCRIPTION' => 'Яркость (1<-->100).', 'ONCHANGE' => 'propertysUpdated', 'DATA_KEY' => 1),
+		'levelWork' => array('DESCRIPTION' => 'Рабочая яркость.', 'ONCHANGE' => 'worksUpdated'),
 		'levelSaved' => array('DESCRIPTION' => 'Последняя яркость.', 'DATA_KEY' => 1),
-
-		'sceneName' => array('DESCRIPTION' => 'Название текущей сцены.', 'ONCHANGE' => 'propertysUpdated', 'DATA_KEY' => 1),
-		'sceneWork' => array('DESCRIPTION' => 'Рабочая сцена.', 'ONCHANGE' => 'worksUpdated'),
-		'sceneNameSaved' => array('DESCRIPTION' => 'Последняя сцена.'),
-		'scenesList' => array('DESCRIPTION' => 'Список сцен.', 'ONCHANGE' => 'propertysUpdated'),
-
-		'modeWork' => array('DESCRIPTION' => 'Режим работы.'),
-		'mode' => array('DESCRIPTION' => 'Что включать (цвет, сцена)','_CONFIG_TYPE'=>'select','_CONFIG_OPTIONS'=>'1=Цвет,2=Сцена'),
+		'levelMin' => array('DESCRIPTION' => 'Минимальная рабочая яркость', '_CONFIG_TYPE' => 'num'),
+		'levelMax' => array('DESCRIPTION' => 'Максимальная рабочая яркость', '_CONFIG_TYPE' => 'num'),
 
 		'dayColor' => array('DESCRIPTION' => 'Цвет днем', '_CONFIG_TYPE' => 'num',),
 		'dayLevel' => array('DESCRIPTION' => 'Уровень яркости днем', '_CONFIG_TYPE' => 'num',),
-		'dayScene' => array('DESCRIPTION' => 'Сцена днем', '_CONFIG_TYPE' => 'num',),
-		'dayMode' => array('DESCRIPTION' => 'Что включать днем (цвет, сцена)','_CONFIG_TYPE'=>'select','_CONFIG_OPTIONS'=>'1=Цвет,2=Сцена'),
 
 		'nightColor' => array('DESCRIPTION' => 'Цвет ночью', '_CONFIG_TYPE' => 'num',),
 		'nightLevel' => array('DESCRIPTION' => 'Уровень яркости ночью', '_CONFIG_TYPE' => 'num',),
-		'nightScene' => array('DESCRIPTION' => 'Сцена ночью', '_CONFIG_TYPE' => 'num',),
-		'nightMode' => array('DESCRIPTION' => 'Что включать ночью (цвет, сцена)','_CONFIG_TYPE'=>'select','_CONFIG_OPTIONS'=>'1=Цвет,2=Сцена'),
 
 		'autoOnOff' => array('DESCRIPTION' => 'Автовключение','_CONFIG_TYPE'=>'select','_CONFIG_OPTIONS'=>'1=Включено,0=Отключено'),
 		'timerOff' => array('DESCRIPTION' => 'Выключить через(сек). 0-не выключать', '_CONFIG_TYPE' => 'num'),
@@ -122,7 +100,6 @@ $this->device_types['RGBStripTuya2'] = array(
 		'illuminance' => array('DESCRIPTION' => 'Данные с датчика освещения', 'DATA_KEY' => 1),
 		'presence' => array('DESCRIPTION' => 'Данные с датчика присутствия', 'ONCHANGE' => 'propertysUpdated', 'DATA_KEY' => 1),
 		'flag' => array('DESCRIPTION' => 'Стопер запуска авто мода'),
-		'blockTuya' => array('DESCRIPTION' => 'Стопер для данных от туя'),
 	),
 	'METHODS' => array(
 		'turnOn' => array('DESCRIPTION' => 'Включить', '_CONFIG_SHOW' => 1),
@@ -137,7 +114,6 @@ $this->device_types['RGBStripTuya2'] = array(
 		
 		'worksUpdated' => array('DESCRIPTION' => 'Запускается при смене рабочих параметров'),
 		'propertysUpdated' => array('DESCRIPTION' => 'Запускается при смене параметров'),
-		'statusUpdated' => array('DESCRIPTION' => 'Запускается при смене статуса'),
 
 		'byDefault' => array('DESCRIPTION' => 'Установить свойства по умолчанию.'),
 		'createCommandsMenu' => array('DESCRIPTION' => 'Создает меню управления.', '_CONFIG_SHOW' => 1),

@@ -163,16 +163,10 @@
  *   - bool|int    $params['autoMode']    Включение авто режима (1 — включен, 0 — выключен).
  *   - int|null    $params['level']       Уровень яркости (1–100).
  *   - string|null $params['color']       Цвет в HEX формате ('#FFFFFF').
- *   - string|null $params['sceneName']   Название сцены ('Степь').
- *   - string|int  $params['mode']        Включение цвета или сцены (1 — цвет, 2 — сцена).
  *
  * @property string $color         Текущий цвет лампы (HEX), сохраняется при режиме color.
  * @property int    $level         Уровень яркости белого света (1–100).
- * @property string $sceneName     Название текущей сцены.
  * @property bool   $autoMode      Флаг авто режима.
- * @property int    $mode          Текущий режим работы лампы:
- *                                1 — цветной свет,
- *                                2 — сцена.
  * @property bool   $flag          Внутренний флаг для авто режима (защита вызова).
  * @property int    $timerOff      Время авто-выключения (в секундах), 0 — отключено.
  *
@@ -184,40 +178,26 @@
 
 // --- Дефолтные свойства
 $this->callMethod('byDefault');
-$autoMode = ($params['autoMode'] ?? 0) == 1;
 
+$autoMode = ($params['autoMode'] ?? 0) == 1;
 $colorSaved = $this->getProperty('colorSaved');
 $levelSaved = $this->getProperty('levelSaved');
-$sceneNameSaved = $this->getProperty('sceneNameSaved');
-
 $color = normalizeRange($params['color']) ?? (!$autoMode ? ($colorSaved ?? '#FFFFFF') : null);
 $level = normalizeRange($params['level'], 1, 100, 'number') ?? (!$autoMode ? ($levelSaved ?? 100) : null);
-$sceneName = $params['sceneName'] ?? (!$autoMode ? ($sceneNameSaved ?? 'Синее небо') : null);
-$mode = $params['mode'] ?? (!$autoMode ? ($this->getProperty('mode') ?? '1') : null);
 
 // --- Обычный режим (без авто)
 if (!$autoMode) {
-  if($mode == 1){
-    $this->setProperty('color', $color, 'noAutoMode');
-    $this->setProperty('level', $level, 'noAutoMode');
-  }elseif($mode == 2){
-    $this->setProperty('sceneName', $sceneName, 'noAutoMode');
-  }
+  $this->setProperty('color', $color, 'noAutoMode');
+  $this->setProperty('level', $level, 'noAutoMode');
 }
 
 // --- Авто режим 
 if ($autoMode && !$this->getProperty('flag')) {
-  $levels = getAutoLevelCct($this, $level, null, $color, null, $sceneName, $mode);
-  if($levels['mode'] !== null){
-    if($levels['mode'] == 1 && $levels['level'] !== null && $levels['color'] !== null){
-      $this->setProperty('level', $levels['level'], 'autoMode');
-      $this->setProperty('color', $levels['color'], 'autoMode');
-    }elseif($levels['mode'] == 2 && $levels['sceneName'] !== null){
-      $this->setProperty('sceneName', $levels['sceneName'], 'autoMode');
-    }
+  $levels = getAutoLevelCct($this, $level, null, $color);
+  if($levels['level'] !== null && $levels['color'] !== null){
+    $this->setProperty('level', $levels['level'], 'autoMode');
+    $this->setProperty('color', $levels['color'], 'autoMode');
     // --- Авто-выключение
-	if ((int)$this->getProperty('timerOff') > 0)
-		autoOff($this);
+	  if ((int)$this->getProperty('timerOff') > 0) autoOff($this);
   }
 }
-

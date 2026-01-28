@@ -1,9 +1,9 @@
 <?php
 /**
- * Обрабатывает голосовые команды для устройства типа SRGBStripTuya2.
+ * Обрабатывает голосовые команды для устройства типа SDimmersRGB2.
  *
  * Функция анализирует текст голосовой команды и формирует код выполнения ($run_code)
- * для объекта ленты SRGBStripTuya2. Поддерживаются включение, выключение, переключение,
+ * для объекта ленты SDimmersRGB2. Поддерживаются включение, выключение, переключение,
  * управление яркостью, управлением цветом и сценами.
  *
  * Поддерживаемые возможности:
@@ -25,16 +25,11 @@
  *         - Уменьшает текущий уровень на -10
  *
  * 3. Управление цветом:
- *    - Используются ключевые слова из словаря LANG_SRGBStripTuya2_PATTERN_COLOR
+ *    - Используются ключевые слова из словаря LANG_SDimmersRGB2_PATTERN_COLOR
  *    - Поддерживаемые цвета: красный, зелёный, синий, белый, жёлтый, голубой,
  *      пурпурный, оранжевый, фиолетовый, розовый, лайм.
  *    - Команда вызывает метод setColor(value => <цвет>)
  *    - Автоматически сохраняет предыдущий цвет для отката ($opposite_code)
- *
- * 4. Управление сценами:
- *    - Имена сцен берутся из свойства scenesList (формат: Имя=Значение,Имя=Значение,...)
- *    - Команда вызывает установку имени сцены в свойство sceneName
- *    - Автоматически сохраняется предыдущая сцена для отката
  *
  * Результат работы:
  *    - Устанавливает $run_code — код действия
@@ -43,7 +38,7 @@
  *    - При необходимости устанавливает $reply_confirm = 1
  *
  * Ожидаемые входные параметры (передаются извне в область видимости):
- *    @param string $device_type     Тип устройства (должен быть 'SRGBStripTuya2')
+ *    @param string $device_type     Тип устройства (должен быть 'SDimmersRGB2')
  *    @param string $command         Текст голосовой команды пользователя
  *    @param string $linked_object   Имя объекта в MajorDoMo
  *    @param string $device_title    Человекочитаемое название устройства
@@ -58,7 +53,7 @@
  * @return void
  */
 
-if ($device_type == 'SRGBStripTuya2') {
+if ($device_type == 'SDimmersRGB2') {
 
     // --- ВКЛ / ВЫКЛ / ПЕРЕКЛЮЧИТЬ ---
     if (preg_match('/' . LANG_DEVICES_PATTERN_TURNON . '/uis', $command)) {
@@ -81,7 +76,7 @@ if ($device_type == 'SRGBStripTuya2') {
     }
 
     // --- ЯРКОСТЬ ---
-    elseif (preg_match('/' . LANG_SRGBStripTuya2_PATTERN_BRIGHTNESS . '/uis', $command)) {
+    elseif (preg_match('/' . LANG_SDimmersRGB2_PATTERN_BRIGHTNESS . '/uis', $command)) {
         $currentLevel = (int)getGlobal("$linked_object.level");
         $step = 10;
         if (preg_match('/(?:\s)(\d{1,2}|100)(?:%|\s|$)/uis', $command, $matches)) {
@@ -91,7 +86,7 @@ if ($device_type == 'SRGBStripTuya2') {
             $value = min(100, $currentLevel + $step);
         }
         elseif (preg_match('/(тусклее|меньше|приглуш|потемн)/uis', $command)) {
-            $value = max(0, $currentLevel - $step);
+            $value = max(1, $currentLevel - $step);
         }
         if (isset($value)) {
             $run_code      .= "callMethod('$linked_object.setLevel', array('value' => $value));";
@@ -102,7 +97,7 @@ if ($device_type == 'SRGBStripTuya2') {
     }
 
     // --- ЦВЕТ ---
-    elseif (preg_match('/' . LANG_SRGBStripTuya2_PATTERN_COLOR . '/uis', $command)) {
+    elseif (preg_match('/' . LANG_SDimmersRGB2_PATTERN_COLOR . '/uis', $command)) {
         $colors = array(
             'красн' => 'red', 'зел' => 'green', 'син' => 'blue',
             'бел' => 'white', 'жёлт' => 'yellow', 'желт' => 'yellow',
@@ -122,28 +117,6 @@ if ($device_type == 'SRGBStripTuya2') {
             if ($prevColor) $opposite_code .= "callMethod('$linked_object.setColor', array('value' => '$prevColor'));" ;
             $processed = 1;
             $reply_confirm = 1;
-        }
-    }
-
-    // --- СЦЕНЫ ---
-    elseif (preg_match('/' . LANG_SRGBStripTuya2_PATTERN_SCENE . '/uis', $command)) {
-        $scenesRaw = getGlobal("$linked_object.scenesList");
-        if ($scenesRaw) {
-            $sceneItems = preg_split('/\s*(?:,|\r\n|\n|\r)\s*/', $scenesRaw, -1, PREG_SPLIT_NO_EMPTY);
-            foreach ($sceneItems as $item) {
-                $parts = explode('=', $item, 2);
-                if (count($parts) == 2) {
-                    $sceneName = trim($parts[0]);
-                    if (preg_match('/' . preg_quote($sceneName, '/') . '/uis', $command)) {
-                        $prevScene = getGlobal("$linked_object.sceneName");
-                        $run_code .= "setProperty('$linked_object.sceneName', '$sceneName');";
-                        $opposite_code .= "setProperty('$linked_object.sceneName', '$prevScene');";
-                        $processed = 1;
-                        $reply_confirm = 1;
-                        break;
-                    }
-                }
-            }
         }
     }
 }

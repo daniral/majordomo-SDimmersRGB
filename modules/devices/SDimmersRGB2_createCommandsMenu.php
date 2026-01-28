@@ -41,28 +41,12 @@
 $objectName = $this->object_title;
 $deleteMenu = $params['value'] ?? null;
 
-// Получаем список сцен и очищаем его от лишних символов
-$scenesList = trim($this->getProperty('scenesList'), " \t\n\r\0\x0B\"'");
-// Разбиваем строки (запятая или перенос строки)
-$sceneItems = preg_split('/\s*(?:,|\r\n|\n|\r)\s*/', $scenesList, -1, PREG_SPLIT_NO_EMPTY);
-$sceneNamesExport = '';
-foreach ($sceneItems as $item) {
-    // Разбиваем "Имя = значение"
-    $parts = preg_split('/\s*=\s*/', $item, 2);
-    if (count($parts) === 2) {
-        $name = $parts[0];
-        $sceneNamesExport .= $name . "\r\n";
-    }
-}
-
 $menuItems = [
     // Главное меню
     [$objectName, $objectName, '', '', '', '', '', '', '', '', '', 10, [
         ['Вкл/Выкл', $objectName, 'status', 'switch', '', '', '', '', '', "if (\$new_value) {callMethod('{$objectName}.turnOn');}else{callMethod('{$objectName}.turnOff');}", '', 120],
         ['Цвет', $objectName, 'color', 'color', '', '', '', '', '', '', '', 110],
         ['Яркость', $objectName, 'level', 'sliderbox', '', 1, 100, 1, '', '', '', 100],
-		['Сцена', $objectName, 'sceneName', 'selectbox', '', '', '', '', '', '', $sceneNamesExport, 70],
-        ['Режим', $objectName, 'mode', 'selectbox', '', '', '', '', '', '', "1=Цвет\r\n2=Сцена", 60],
 
         // Автовключение
         ['Автовключение', $objectName, '', '', '', '', '', '', '', '', '', 50, [
@@ -96,17 +80,13 @@ $menuItems = [
             ['День', $objectName, '', '', '', '', '', '', '', '', '', 20, [
                 ['Цвет', $objectName, 'dayColor', 'color', '', '', '', '', '', '', '', 60],
                 ['Яркость', $objectName, 'dayLevel', 'sliderbox', '', 1, 100, 1, '', '', '', 50],
-        		['Сцена', $objectName, 'dayScene', 'selectbox', '', '', '', '', '', '', $sceneNamesExport, 20],
-        		['Режим', $objectName, 'dayMode', 'selectbox', '', '', '', '', '', '', "1=Цвет\r\n2=Сцена", 10],
             ]],
             ['Ночь', $objectName, '', '', '', '', '', '', '', '', '', 10, [
                 ['Цвет', $objectName, 'nightColor', 'color', '', '', '', '', '', '', '', 60],
                 ['Яркость', $objectName, 'nightLevel', 'sliderbox', '', 1, 100, 1, '', '', '', 50],
-        		['Сцена', $objectName, 'nightScene', 'selectbox', '', '', '', '', '', '', $sceneNamesExport, 20],
-            	['Режим', $objectName, 'nightMode', 'selectbox', '', '', '', '', '', '', "1=Цвет\r\n2=Сцена", 10],
         ]],
         ]],
-    ],'SRGBStripTuya2.png']
+    ],'SDimmersRGB2.png']
 ];
 
 if($deleteMenu === 'delete'){

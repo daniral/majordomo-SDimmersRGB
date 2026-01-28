@@ -11,27 +11,9 @@
  *  • Автоматическое включение устройства при изменении color или level.
  *  • Сохранение последних значений colorSaved и levelSaved.
  *
- * --- Сцены ---
- *  • Нормализацию и очистку свойства scenesList:
- *      - удаление переносов,
- *      - разбор формата "Имя=Значение",
- *      - выравнивание пробелов по краям,
- *      - отбрасывание невалидных элементов.
- *  • Обработку выбора сцены через sceneName:
- *      - поиск сцены в списке,
- *      - установка sceneWork,
- *      - переключение режима на "scene",
- *      - восстановление предыдущей сцены, если имя не найдено.
- *  • Синхронизацию списка сцен с таблицей commands:
- *      - обновление DATA для привязанных команд sceneName / dayScene / nightScene.
- *
  * --- Защита от рекурсий ---
  *  • SOURCE="worksUpdated" — предотвращает циклические обновления.
  *  • SOURCE="autoMode" — отключает запись в flag и сохранение значений.
- *
- * --- Режимы работы ---
- *  • work_mode="colour" — при изменении color или level.
- *  • work_mode="scene"  — при выборе сцены.
  *
  * --- Используемые свойства объекта ---
  *  • presence         — флаг присутствия (0/1)
@@ -40,12 +22,7 @@
  *  • color            — текущий HEX-цвет
  *  • levelSaved       — сохранённая яркость
  *  • colorSaved       — сохранённый цвет
- *  • colorWork        — HSV-HEX строка для устройства
- *  • sceneName        — выбранная пользователем сцена
- *  • sceneNameSaved   — последняя корректная сцена
- *  • sceneWork        — активная сцена (код устройства)
- *  • scenesList       — список сцен: "Имя=Значение,Имя2=Значение2"
- *  • work_mode        — режим работы ("colour" или "scene")
+ *  • colorWork        — строка для устройства
  *  • timerOff         — таймер авто-выключения
  *  • flag             — флаг изменения извне
  *
@@ -65,14 +42,7 @@
  *        - установка work_mode=colour,
  *        - генерация colorWork,
  *        - сохранение *_Saved.
- *  6. Для sceneName:
- *        - поиск сцены,
- *        - установка sceneWork и work_mode=scene,
- *        - fallback на сохранённую сцену.
- *  7. Для scenesList:
- *        - очистка, валидация, пересборка,
- *        - синхронизация с commands.DATA.
- *  8. Если источник не autoMode:
+ *  6. Если источник не autoMode:
  *        - запись flag=1,
  *        - сохранение colorSaved / levelSaved / sceneNameSaved.
  *
@@ -83,10 +53,7 @@
 // --- Дефолтные свойства
 $this->callMethod('byDefault');
 
-// --- Дефолтные свойства
-$this->callMethod('byDefault');
-
-$value    = $params['NEW_VALUE'] ?? null;
+$value = $params['NEW_VALUE'] ?? null;
 
 // --- Преобразование предустановок цвета
 static $transform = [
@@ -102,37 +69,18 @@ if (isset($transform[$value])) {
 $property = $params['PROPERTY'] ?? null;
 $source   = strtok($params['SOURCE'] ?? '', ' ');
 $value = ($property === 'color')
-    ? normalizeRange($value, 1, 100, 'color') // Если color
-    : (($property === 'sceneName' || $property === 'scenesList')
-        ? ($params['NEW_VALUE'] ?? null) // Если sceneName (сырое значение)
-        : (($property === 'presence')
+    ? normalizeRange($value) // Если color
+    : (($property === 'presence')
             ? normalizeRange($value, 0, 1, 'number') // Если presence (0 или 1)
-            : normalizeRange($value, 1, 100, 'number'))); // Иначе (level)
+            : normalizeRange($value, 1, 100, 'number')); // Иначе (level)
 
 // --- Защита от рекурсий и не верных данных
 if ($source === 'worksUpdated' || is_null($value)) {
-    if(is_null($value)){
+    if(is_null($value) && $property != 'presence'){
         $this->setProperty($property, $this->getProperty($property . 'Saved'), 'worksUpdated');
     }
     return;
 }
-
-$saveProperty = function ($obj) use ($property, $value, $source) {
-	if (!$obj->getProperty('status')) {
-		$obj->setProperty('status', 1);
-	}
-	if ($source !== 'autoMode') {
-		$obj->setProperty('flag', 1);
-		$obj->setProperty($property . 'Saved', $value);
-	}
-    // Блокируем входящие данные от Туя на 8 сек
-	$obj->setProperty('blockTuya', 1);
-	setTimeOut($obj->object_title.'blockTuyaTimer', "setGlobal('" . $obj->object_title . ".blockTuya', 0);", 8);
-	// Если значение реально изменилось — сохраняем
-	if ($value != $obj->getProperty($property)) {
-		$obj->setProperty($property, $value, 'worksUpdated');
-	}
-};
 
 // --- Обработка presence
 if ($property === 'presence') {
@@ -142,93 +90,62 @@ if ($property === 'presence') {
     return;
 }
 
-// --- Обработка Цвет / Яркость цвета
+// --- Обработка Цвет и Яркость (Управление ИЗ интерфейса НА устройство) ---
 if ($property === 'color' || $property === 'level') {
-	$saveProperty($this);
-    // Обновляем режим
-    $this->setProperty('modeWork', 'colour');
-    // Генерация HSV-HEX
-    $color = $property === 'color' ? $value : $this->getProperty('color');
-    $level = $property === 'level' ? $value : $this->getProperty('level');
-    $hsvHex = rgbToHSVhex($color, $level);
-    $this->setProperty('colorWork', $hsvHex, 'propertysUpdated');
-	return;
-}
+    if (!$this->getProperty('status')) $this->setProperty('status', 1);
 
-// --- Обработка выбора сцены
-if ($property === 'sceneName') {
-    $sceneName = trim($value, " \t\n\r\0\x0B\"'");
-    if ($sceneName === '' || $sceneName === 'unknown') return;
-    $scenesList = trim($this->getProperty('scenesList'), " \t\n\r\0\x0B\"'");
-    if ($scenesList === '') return;
-    $sceneItems = preg_split('/\s*(?:,|\r\n|\n|\r)\s*/', $scenesList, -1, PREG_SPLIT_NO_EMPTY);
-    //  поиск
-    foreach ($sceneItems as $item) {
-        [$name, $scene] = array_pad(explode('=', $item, 2), 2, null);
-        if ($name === $sceneName && $scene !== null) {
-            $saveProperty($this);
-            $this->setProperty('modeWork', 'scene');
-            $this->setProperty('sceneWork', $scene, 'propertysUpdated');
-			return;
-        }
+    if ($source !== 'autoMode') {
+        $this->setProperty('flag', 1);
+        $this->setProperty($property . 'Saved', $value);
     }
-    // Сцена не найдена → откат
-	$this->setProperty('sceneName', $this->getProperty('sceneNameSaved'));
-	return;
-}
 
+    // Если значение реально изменилось в интерфейсе — сохраняем локально
+    if ($value != $this->getProperty($property)) {
+        $this->setProperty($property, $value, 'worksUpdated');
+    }
 
+    if ($property === 'level') {
+        // 1. Считываем границы устройства
+        $levelMin = $this->getProperty('levelMin') ?? 1;
+        $levelMax = $this->getProperty('levelMax') ?? 254;
 
-// --- Обработка списка сцен scenesList
-if ($property === 'scenesList') {
-    $raw = $this->getProperty('scenesList');
-    // Удаляем переносы
-    $rawClean = str_replace(["\r", "\n"], '', $raw);
-    // Разбиваем по запятым
-    $items = explode(',', $rawClean);
-    $valid = [];
-    foreach ($items as $item) {
-        $item = trim($item);
-        if ($item === '' || strpos($item, '=') === false) continue;
-        [$name, $val] = array_map('trim', explode('=', $item, 2));
-        if ($name !== '' && $val !== '') {
-            $valid[] = "$name=$val";
+        // 2. Пересчитываем 1-100% в рабочий диапазон лампы (например, 1-254)
+        $workValue = (int)round($minLevel + ($maxLevel - $minLevel) * $value / 100);
+        $workValue = max($minLevel, min($maxLevel, $workValue));
+    } 
+    
+    if ($property === 'color') {
+        // 1. HEX -> RGB
+        $hex = ltrim($value, '#');
+        $r = hexdec(substr($hex, 0, 2)) / 255;
+        $g = hexdec(substr($hex, 2, 2)) / 255;
+        $b = hexdec(substr($hex, 4, 2)) / 255;
+
+        // 2. Gamma correction
+        $r = ($r > 0.04045) ? pow(($r + 0.055) / 1.055, 2.4) : $r / 12.92;
+        $g = ($g > 0.04045) ? pow(($g + 0.055) / 1.055, 2.4) : $g / 12.92;
+        $b = ($b > 0.04045) ? pow(($b + 0.055) / 1.055, 2.4) : $b / 12.92;
+
+        // 3. Wide Gamut RGB -> XYZ -> XY
+        $X = $r * 0.664511 + $g * 0.154324 + $b * 0.162028;
+        $Y = $r * 0.283881 + $g * 0.668433 + $b * 0.047685;
+        $Z = $r * 0.000088 + $g * 0.072310 + $b * 0.986039;
+
+        if (($X + $Y + $Z) == 0) {
+            $x = 0.3127; $y = 0.3290;
+        } else {
+            $x = $X / ($X + $Y + $Z);
+            $y = $Y / ($X + $Y + $Z);
         }
+
+        // 4. Формируем JSON для отправки на устройство
+        $workValue = json_encode([
+            'x' => (float)round($x, 4),
+            'y' => (float)round($y, 4)
+        ]);
     }
-    $cleaned = implode(',', $valid);
-    // Если изменилось — пишем и завершаемся (метод запустится заново)
-    if ($cleaned !== $raw) {
-        $this->setProperty('scenesList', $cleaned);
-        return;
-    }
-    // --- Синхронизация команд
-    $objectName = $this->object_title;
-    $props = ['sceneName', 'dayScene', 'nightScene'];
-    foreach ($props as $prop) {
-        $rec = SQLSelectOne("
-            SELECT * FROM commands
-            WHERE LINKED_OBJECT='" . DBSafe($objectName) . "'
-              AND LINKED_PROPERTY='" . DBSafe($prop) . "'
-            LIMIT 1
-        ");
-        if (!$rec) continue;
-        // Сцены из commands.DATA
-        $cmdScenes = [];
-        if ($rec['DATA'] !== '') {
-            foreach (preg_split('/\R/', trim($rec['DATA'])) as $line) {
-                $cmdScenes[] = trim(explode('=', $line)[0]);
-            }
-        }
-        // Сцены из объекта
-        $objScenes = [];
-        foreach (explode(',', $cleaned) as $item) {
-            $objScenes[] = trim(explode('=', $item)[0]);
-        }
-        // Сравнение и обновление
-        if ($cmdScenes !== $objScenes) {
-            $rec['DATA'] = implode("\r\n", $objScenes);
-            SQLUpdate('commands', $rec);
-        }
-    }
+
+    // Отправляем конечное "рабочее" значение на устройство
+    $this->setProperty($property . 'Work', $workValue, 'propertysUpdated');
     return;
 }

@@ -20,8 +20,6 @@
  * — используя TITLE и LINKED_OBJECT, включая вложенные
  * — команды по SUB_LIST (рекурсивно).
  * 
- * hsvToRgbHex($hsvHex) — Конвертирует 12-значный Tuya HSV в RGB HEX и яркость.
- * rgbToHSVhex($rgbHex, $brightness) — Конвертирует RGB HEX + яркость в Tuya HSV (12 hex цифр).
  *
  *--------------------------------------------------------------------------------------------
  *| Функция             | Назначение                                                         |
@@ -34,8 +32,6 @@
  *| `adjustProperty`    | Универсальное изменение свойства лампы                             |
  *| `createCommandsMenu'| Рекурсивное создание меню управления объектом                      |
  *| `deleteCommandsMenu`| Удаление меню управления объектом                                  |
- *| `hsvToRgbHex`       | Преобразует Tuya HSV → RGB HEX и яркость                           |
- *| `rgbToHSVhex`       | Преобразует RGB HEX + яркость → Tuya HSV                           |
  *--------------------------------------------------------------------------------------------
  */
 //
@@ -419,89 +415,3 @@ if (!function_exists('deleteCommandsMenu')) {
 	}
 }
 
-/** Конвертирует 12-значный Tuya HSV в RGB HEX и яркость.
- * hsvToRgbHex($hsvHex)
- * @param string $hsvHex 12-значный HEX
- * @return array ['rgbHex' => string, 'brightness' => int] RGB цвет и яркость
- */
-if (!function_exists('hsvToRgbHex')) {
-	function hsvToRgbHex($hsvHex) {
-		$hsvHex = strtolower(trim($hsvHex));
-		if (!preg_match('/^[0-9a-f]{12}$/', $hsvHex)) {
-			return ['rgbHex' => '#ffff00', 'brightness' => 50];
-		}
-		$hueHex = substr($hsvHex, 0, 4);
-		$satHex = substr($hsvHex, 4, 4);
-		$valHex = substr($hsvHex, 8, 4);
-
-		$hue = hexdec($hueHex);
-		$sat = hexdec($satHex) / 1000;
-		$val = hexdec($valHex) / 1000;
-
-		$hue = max(0, min(360, $hue));
-		$sat = max(0, min(1, $sat));
-		$val = max(0, min(1, $val));
-
-		$h = $hue / 60.0;
-		$c = 1.0 * $sat;
-		$x = $c * (1 - abs(fmod($h, 2) - 1));
-		$m = 1.0 - $c;
-
-		if ($h >= 0 && $h < 1)      { $r = $c; $g = $x; $b = 0; }
-		elseif ($h < 2)             { $r = $x; $g = $c; $b = 0; }
-		elseif ($h < 3)             { $r = 0; $g = $c; $b = $x; }
-		elseif ($h < 4)             { $r = 0; $g = $x; $b = $c; }
-		elseif ($h < 5)             { $r = $x; $g = 0; $b = $c; }
-		else                        { $r = $c; $g = 0; $b = $x; }
-
-		$r = round(($r + $m) * 255);
-		$g = round(($g + $m) * 255);
-		$b = round(($b + $m) * 255);
-
-		$rgbHex = sprintf("#%02x%02x%02x", $r, $g, $b);
-		$brightness = round($val * 100);
-
-		return ['rgbHex' => $rgbHex, 'brightness' => $brightness];
-	}
-}
-
-/** Конвертирует RGB HEX + яркость в Tuya HSV (12 hex цифр).
- * rgbToHSVhex($rgbHex, $brightness)
- * @param string $rgbHex Цвет в формате #RRGGBB
- * @param int $brightness Яркость 0-100
- * @return string|null 12-значный HSV HEX
- */
-if (!function_exists('rgbToHSVhex')) {
-	function rgbToHSVhex($rgbHex, $brightness = 100) {
-		$rgbHex = ltrim($rgbHex, '#');
-		$rgbHex = strtolower(trim($rgbHex));
-
-		if (!preg_match('/^[0-9a-f]{6}$/', $rgbHex)) return null;
-
-		$r = hexdec(substr($rgbHex,0,2))/255;
-		$g = hexdec(substr($rgbHex,2,2))/255;
-		$b = hexdec(substr($rgbHex,4,2))/255;
-
-		$max = max($r,$g,$b);
-		$min = min($r,$g,$b);
-		$d = $max-$min;
-
-		$h = 0;
-		if ($d != 0) {
-			if ($max==$r) { $h=fmod((($g-$b)/$d),6); }
-			elseif ($max==$g) { $h=(($b-$r)/$d)+2; }
-			else { $h=(($r-$g)/$d)+4; }
-			$h *= 60;
-			if ($h<0) $h+=360;
-		}
-
-		$s = $max==0?0:$d/$max;
-		$val = $brightness*10;
-
-		$hsv = str_pad(dechex(round($h)),4,'0',STR_PAD_LEFT)
-			 . str_pad(dechex(round($s*1000)),4,'0',STR_PAD_LEFT)
-			 . str_pad(dechex($val),4,'0',STR_PAD_LEFT);
-
-		return strtolower($hsv);
-	}
-}

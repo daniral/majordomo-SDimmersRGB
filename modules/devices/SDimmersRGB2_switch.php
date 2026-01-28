@@ -16,9 +16,7 @@ $status = (int)$this->getProperty('status');
 $flag   = (int)$this->getProperty('flag');
 
 if ($flag && $status) {
-    // В авто режиме и уже включена — выключаем
     $this->callMethod('turnOff');
 } else {
-    // Во всех остальных случаях — включаем
     $this->callMethod('turnOn');
 }

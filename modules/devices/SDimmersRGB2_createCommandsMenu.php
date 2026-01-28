@@ -84,8 +84,8 @@ $menuItems = [
                 ['Минимальная', $objectName, 'levelMin', 'sliderbox', '', 1, 1500, 1, '', '', '', 10],
             ]],
             ['Цвет', $objectName, '', '', '', '', '', '', '', '', '', 10, [
-                ['Днем', $objectName, 'dayColor', 'sliderbox', '', 0, 100, 1, '', '', '', 20],
-                ['Ночью', $objectName, 'nightColor', 'sliderbox', '', 0, 100, 1, '', '', '', 10],
+                ['Днем', $objectName, 'dayColor', 'color', '', '', '', '', '', '', '', 20],
+                ['Ночью', $objectName, 'nightColor', 'color', '', '', '', '', '', '', '', 10],
             ]],
         ]],
     ],'SDimmersRGB2.png']

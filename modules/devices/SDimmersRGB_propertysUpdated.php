@@ -1,5 +1,5 @@
 <?php
-/** Обработчик изменения свойств RGB-ленты (presence, color, level, sceneName, scenesList).
+/** Обработчик изменения свойств.
  * 
  * Метод выполняет комплексную обработку входящих свойств устройства
  * и отвечает за:
@@ -16,15 +16,12 @@
  *  • SOURCE="autoMode" — отключает запись в flag и сохранение значений.
  *
  * --- Используемые свойства объекта ---
- *  • presence         — флаг присутствия (0/1)
  *  • status           — включено/выключено (0/1)
  *  • level            — текущая яркость (1–100)
  *  • color            — текущий HEX-цвет
  *  • levelSaved       — сохранённая яркость
  *  • colorSaved       — сохранённый цвет
- *  • colorWork        — строка для устройства
- *  • timerOff         — таймер авто-выключения
- *  • flag             — флаг изменения извне
+ *  • workValue        — строка для устройства
  *
  * --- Параметры входящего события ---
  * @param array $params Ассоциативный массив:
@@ -33,26 +30,23 @@
  *      - string $params['SOURCE']     Источник события (защита от рекурсий).
  *
  * Логика обработки:
- *  1. byDefault() — установка дефолтов перед обработкой.
- *  2. Если SOURCE="worksUpdated" → выход (защита от рекурсий).
- *  3. Преобразование предустановок цвета (red, blue, lime ...).
- *  4. Нормализация числовых значений.
- *  5. Для color/level:
+ *  1. Если SOURCE="worksUpdated" → выход (защита от рекурсий).
+ *  2. Преобразование предустановок цвета (red, blue, lime ...).
+ *  3. Нормализация числовых значений.
+ *  4. Для color/level:
  *        - включение устройства,
- *        - генерация colorWork,
+ *        - генерация workValue,
  *        - сохранение *_Saved.
- *  6. Если источник не autoMode:
- *        -  flag=1,
- *        - сохранение colorSaved / levelSaved.
  *
  * @return void
  */
+//
 
 // --- Дефолтные свойства
-if($this->getProperty('color')=='') $this->setProperty('color', '#ffffff');
-if($this->getProperty('level')=='') $this->setProperty('level', 100);
-if($this->getProperty('levelMin')=='') $this->setProperty('levelMin', 1);
-if($this->getProperty('levelMax')=='') $this->setProperty('levelMax', 254);
+if($this->getProperty('color') == '') $this->setProperty('color', '#ffffff');
+if($this->getProperty('level') == '') $this->setProperty('level', 100);
+if($this->getProperty('levelMin') == '') $this->setProperty('levelMin', 1);
+if($this->getProperty('levelMax') == '') $this->setProperty('levelMax', 254);
 
 $value = $params['NEW_VALUE'] ?? null;
 
@@ -63,90 +57,59 @@ static $transform = [
     'magenta' => '#ff00ff', 'orange' => '#ffa500', 'purple' => '#800080',
     'pink' => '#ffc0cb', 'lime' => '#00ff00'
 ];
+
 if (isset($transform[$value])) {
     $value = $transform[$value];
 }
 
 $property = $params['PROPERTY'] ?? null;
 $source   = strtok($params['SOURCE'] ?? '', ' ');
-$value = ($property === 'color')
-    ? normalizeRange($value) // Если color
-    : (($property === 'presence')
-            ? normalizeRange($value, 0, 1, 'number') // Если presence (0 или 1)
-            : normalizeRange($value, 1, 100, 'number')); // Иначе (level)
 
-// --- Защита от рекурсий и не верных данных
+// 1. Считываем границы устройства
+$levelMin = $this->getProperty('levelMin');
+$levelMax = $this->getProperty('levelMax');
+
+// 2. Нормализация входящего значения
+$value = ($property === 'color')
+    ? normalizeRange($value) 
+    : normalizeRange($value, 1, 100, 'number');
+
+// --- Защита от рекурсий и неверных данных
 if ($source === 'worksUpdated' || is_null($value)) {
-    if(is_null($value) && $property != 'presence'){
+    if (is_null($value)) {
         $this->setProperty($property, $this->getProperty($property . 'Saved'), 'worksUpdated');
     }
     return;
 }
 
-// --- Обработка presence
-if ($property === 'presence') {
-    if ((int)$this->getProperty('timerOff') > 0) {
-        autoOff($this);
-    }
-    return;
-}
-
-// --- Обработка Цвет и Яркость (Управление ИЗ интерфейса НА устройство) ---
+// --- Обработка Цвет и Яркость ---
 if ($property === 'color' || $property === 'level') {
-    if (!$this->getProperty('status')) $this->setProperty('status', 1);
-
-    if ($source !== 'autoMode') {
-        $this->setProperty('flag', 1);
-        $this->setProperty($property . 'Saved', $value);
-    }
-
-    // Если значение реально изменилось в интерфейсе — сохраняем локально
-    if ($value != $this->getProperty($property)) {
-        $this->setProperty($property, $value, 'worksUpdated');
-    }
-	$workValue = $value;
+    
+    // Подготовка значения для устройства (Work)
     if ($property === 'level') {
-        // 1. Считываем границы устройства
-        $levelMin = $this->getProperty('levelMin') ?? 1;
-        $levelMax = $this->getProperty('levelMax') ?? 254;
-
-        // 2. Пересчитываем 1-100% в рабочий диапазон лампы (например, 1-254)
-        $workValue = (int)round($levelMin + ($levelMax - $levelMin) * $value / 100);
-        $workValue = max($levelMin, min($levelMax, $workValue));
+        $workValue = levelToWork($value, $levelMin, $levelMax, 1);
+        if ($workValue === null) return;
     } 
     
     if ($property === 'color') {
-        // 1. HEX -> RGB
-        $hex = ltrim($value, '#');
-        $r = hexdec(substr($hex, 0, 2)) / 255;
-        $g = hexdec(substr($hex, 2, 2)) / 255;
-        $b = hexdec(substr($hex, 4, 2)) / 255;
-
-        // 2. Gamma correction
-        $r = ($r > 0.04045) ? pow(($r + 0.055) / 1.055, 2.4) : $r / 12.92;
-        $g = ($g > 0.04045) ? pow(($g + 0.055) / 1.055, 2.4) : $g / 12.92;
-        $b = ($b > 0.04045) ? pow(($b + 0.055) / 1.055, 2.4) : $b / 12.92;
-
-        // 3. Wide Gamut RGB -> XYZ -> XY
-        $X = $r * 0.664511 + $g * 0.154324 + $b * 0.162028;
-        $Y = $r * 0.283881 + $g * 0.668433 + $b * 0.047685;
-        $Z = $r * 0.000088 + $g * 0.072310 + $b * 0.986039;
-
-        if (($X + $Y + $Z) == 0) {
-            $x = 0.3127; $y = 0.3290;
-        } else {
-            $x = $X / ($X + $Y + $Z);
-            $y = $Y / ($X + $Y + $Z);
-        }
-
-        // 4. Формируем JSON для отправки на устройство
-        $workValue = json_encode([
-            'x' => (float)round($x, 4),
-            'y' => (float)round($y, 4)
-        ]);
+        // Конвертируем в XY и упаковываем в JSON строку
+        $workValue = json_encode(hexToXy($value));
     }
 
-    // Отправляем конечное "рабочее" значение на устройство
+    // Авто-включение
+    if (!$this->getProperty('status')) {
+        $this->setProperty('status', 1);
+    }
+
+    // Сохраняем для истории и восстановления
+    $this->setProperty($property . 'Saved', $value);
+
+    // Синхронизируем значение свойства в MajorDoMo
+    if ($value != $this->getProperty($property)) {
+        $this->setProperty($property, $value, 'worksUpdated');
+    }
+
+    // Отправляем готовую команду на устройство
     $this->setProperty($property . 'Work', $workValue, 'propertysUpdated');
     return;
 }

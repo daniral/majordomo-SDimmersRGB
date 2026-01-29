@@ -2,25 +2,25 @@
 
 /**
  * ============================================================
- * Dictionary for SDimmersRGB2 control
+ * Dictionary for SDimmersRGB control
  * ============================================================
  *
  * $dictionary - array defining patterns to recognize commands:
- *   - 'SDimmersRGB2_PATTERN_BRIGHTNESS': keywords for brightness control
- *   - 'SDimmersRGB2_PATTERN_COLOR': keywords for color control
+ *   - 'SDimmersRGB_PATTERN_BRIGHTNESS': keywords for brightness control
+ *   - 'SDimmersRGB_PATTERN_COLOR': keywords for color control
  *
  * Each value is a string with keywords separated by |
  * Constants with the LANG_ prefix are defined for each key
- *   e.g., LANG_SDimmersRGB2_PATTERN_BRIGHTNESS
+ *   e.g., LANG_SDimmersRGB_PATTERN_BRIGHTNESS
  * These constants are used to recognize text or voice commands.
  */
 $dictionary = array(
 
     // Brightness control
-    'SDimmersRGB2_PATTERN_BRIGHTNESS' => 'bright|brightness|lighter|dimmer|light level|increase light|decrease light',
+    'SDimmersRGB_PATTERN_BRIGHTNESS' => 'bright|brightness|lighter|dimmer|light level|increase light|decrease light',
 
     // Color control
-    'SDimmersRGB2_PATTERN_COLOR' => 'red|green|blue|white|yellow|cyan|magenta|orange|purple|pink|lime',
+    'SDimmersRGB_PATTERN_COLOR' => 'red|green|blue|white|yellow|cyan|magenta|orange|purple|pink|lime',
 
 );
 

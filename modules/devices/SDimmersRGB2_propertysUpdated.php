@@ -48,9 +48,11 @@
  * @return void
  */
 
-
 // --- Дефолтные свойства
-$this->callMethod('byDefault');
+if($this->getProperty('color')=='') $this->setProperty('color', '#ffffff');
+if($this->getProperty('level')=='') $this->setProperty('level', 100);
+if($this->getProperty('levelMin')=='') $this->setProperty('levelMin', 1);
+if($this->getProperty('levelMax')=='') $this->setProperty('levelMax', 254);
 
 $value = $params['NEW_VALUE'] ?? null;
 

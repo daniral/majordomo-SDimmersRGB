@@ -1,9 +1,9 @@
 <?php
 /**
- * Обрабатывает голосовые команды для устройства типа SDimmersRGB2.
+ * Обрабатывает голосовые команды для устройства типа SDimmersRGB.
  *
  * Функция анализирует текст голосовой команды и формирует код выполнения ($run_code)
- * для объекта ленты SDimmersRGB2. Поддерживаются включение, выключение, переключение,
+ * для объекта ленты SDimmersRGB. Поддерживаются включение, выключение, переключение,
  * управление яркостью, управлением цветом и сценами.
  *
  * Поддерживаемые возможности:
@@ -25,7 +25,7 @@
  *         - Уменьшает текущий уровень на -10
  *
  * 3. Управление цветом:
- *    - Используются ключевые слова из словаря LANG_SDimmersRGB2_PATTERN_COLOR
+ *    - Используются ключевые слова из словаря LANG_SDimmersRGB_PATTERN_COLOR
  *    - Поддерживаемые цвета: красный, зелёный, синий, белый, жёлтый, голубой,
  *      пурпурный, оранжевый, фиолетовый, розовый, лайм.
  *    - Команда вызывает метод setColor(value => <цвет>)
@@ -38,7 +38,7 @@
  *    - При необходимости устанавливает $reply_confirm = 1
  *
  * Ожидаемые входные параметры (передаются извне в область видимости):
- *    @param string $device_type     Тип устройства (должен быть 'SDimmersRGB2')
+ *    @param string $device_type     Тип устройства (должен быть 'SDimmersRGB')
  *    @param string $command         Текст голосовой команды пользователя
  *    @param string $linked_object   Имя объекта в MajorDoMo
  *    @param string $device_title    Человекочитаемое название устройства
@@ -53,7 +53,7 @@
  * @return void
  */
 
-if ($device_type == 'SDimmersRGB2') {
+if ($device_type == 'SDimmersRGB') {
 
     // --- ВКЛ / ВЫКЛ / ПЕРЕКЛЮЧИТЬ ---
     if (preg_match('/' . LANG_DEVICES_PATTERN_TURNON . '/uis', $command)) {
@@ -76,7 +76,7 @@ if ($device_type == 'SDimmersRGB2') {
     }
 
     // --- ЯРКОСТЬ ---
-    elseif (preg_match('/' . LANG_SDimmersRGB2_PATTERN_BRIGHTNESS . '/uis', $command)) {
+    elseif (preg_match('/' . LANG_SDimmersRGB_PATTERN_BRIGHTNESS . '/uis', $command)) {
         $currentLevel = (int)getGlobal("$linked_object.level");
         $step = 10;
         if (preg_match('/(?:\s)(\d{1,2}|100)(?:%|\s|$)/uis', $command, $matches)) {
@@ -97,7 +97,7 @@ if ($device_type == 'SDimmersRGB2') {
     }
 
     // --- ЦВЕТ ---
-    elseif (preg_match('/' . LANG_SDimmersRGB2_PATTERN_COLOR . '/uis', $command)) {
+    elseif (preg_match('/' . LANG_SDimmersRGB_PATTERN_COLOR . '/uis', $command)) {
         $colors = array(
             'красн' => 'red', 'зел' => 'green', 'син' => 'blue',
             'бел' => 'white', 'жёлт' => 'yellow', 'желт' => 'yellow',

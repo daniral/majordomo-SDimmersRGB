@@ -12,7 +12,7 @@
 
 ## 📘 Описание
 
-**`SDimmersRGB2`** — расширяет класс *SControllers* 
+**`SDimmersRGB`** — расширяет класс *SControllers* 
 > Простое устройство диммируемого освещения для MajorDoMo.
 
 ---  
